@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import requests
-import json
 
 app = Flask(__name__)
 
@@ -8,35 +7,62 @@ app = Flask(__name__)
 def home():
     return jsonify({
         "status": "running",
+        "owner": "@mynk_mynk_mynk",
         "message": "LPG Info API"
     })
 
 @app.route('/lpg-info', methods=['GET', 'POST'])
 def get_lpg_info():
 
-    # GET or POST support
+    # GET / POST support
     if request.method == 'GET':
         mobile_no = request.args.get('mobile_no')
     else:
         data = request.get_json()
         mobile_no = data.get('mobile_no') if data else None
 
+    # Check mobile number
     if not mobile_no:
         return jsonify({
-            "error": "Mobile number is required"
+            "success": False,
+            "message": "Mobile number is required"
         }), 400
 
-    url = 'https://apigw.umangapp.in/ioclApi/ws1/consumervalidate'
+    # API URL
+    url = "https://apigw.umangapp.in/ioclApi/ws1/consumervalidate"
 
+    # Headers
     headers = {
-        'User-Agent': 'Mozilla/5.0',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36',
         'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
         'Content-Type': 'application/json',
+        'subsid': '0',
+        'sec-ch-ua-platform': '"Android"',
+        'deptid': '186',
+        'tenantid': '',
+        'sec-ch-ua': '"Google Chrome";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
+        'formtrkr': '0',
         'x-api-key': 'VKE9PnbY5k1ZYapR5PyYQ33I26sXTX569Ed7eqyg',
+        'sec-ch-ua-mobile': '?1',
+        'srvid': '1123',
+        'subsid2': '0',
         'origin': 'https://web.umang.gov.in',
-        'referer': 'https://web.umang.gov.in/'
+        'sec-fetch-site': 'cross-site',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-dest': 'empty',
+        'referer': 'https://web.umang.gov.in/',
+        'accept-language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7',
+        'priority': 'u=1, i'
     }
 
+    # Cookies
+    cookies = {
+        'AWSALB': 'test',
+        'AWSALBCORS': 'test'
+    }
+
+    # Payload
     payload = {
         "tkn": "iad1cc7d81-1533-44b0-9967-35599386d3df/2",
         "trkr": "213132",
@@ -64,25 +90,36 @@ def get_lpg_info():
     }
 
     try:
+
         response = requests.post(
             url,
             headers=headers,
+            cookies=cookies,
             json=payload,
             timeout=30
         )
 
         try:
-            return jsonify(response.json()), response.status_code
+            result = response.json()
         except:
             return jsonify({
-                "error": "Invalid response",
+                "success": False,
+                "message": "Invalid JSON response",
                 "raw": response.text
             }), 500
 
-    except Exception as e:
         return jsonify({
-            "error": str(e)
+            "success": True,
+            "owner": "@mynk_mynk_mynk",
+            "response": result
+        }), response.status_code
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
         }), 500
 
-# Vercel handler
+
+# Vercel Handler
 app = app
